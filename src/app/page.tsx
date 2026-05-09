@@ -36,6 +36,10 @@ import {
   type MatchPairsActivityArgs,
 } from "@/components/MatchPairsActivity";
 import {
+  MiniAppActivity,
+  type MiniAppActivityArgs,
+} from "@/components/MiniAppActivity";
+import {
   initialProfile,
   type ChildProfile,
   type Difficulty,
@@ -268,6 +272,115 @@ function App() {
         }}
       />
     ),
+  });
+
+  useHumanInTheLoop({
+    name: "presentMiniApp",
+    description:
+      "Crea una mini-app interactiva en MODO APP (pantalla completa) para explicar un tema cuando ninguna otra herramienta encaja. ANTES de llamarla pregunta 1-2 cosas cortas para definirla. Construye 1-3 controles muy simples (slider/button/toggle/picker) y un reactionTemplate con {{idDelControl}} que se actualiza en vivo.",
+    parameters: z.object({
+      title: z
+        .string()
+        .describe("Título corto, ej. 'Cómo crece una planta 🌱'"),
+      intro: z
+        .string()
+        .describe("1-2 frases muy simples explicando qué pueden explorar"),
+      scene: z
+        .string()
+        .optional()
+        .describe("Línea de emojis decorativa (opcional)"),
+      controls: z
+        .array(
+          z.object({
+            kind: z
+              .enum(["slider", "button", "toggle", "picker"])
+              .describe("Tipo de control"),
+            id: z
+              .string()
+              .describe(
+                "Identificador único, sin espacios. Para reactionTemplate.",
+              ),
+            label: z.string().describe("Etiqueta corta visible"),
+            emoji: z.string().optional(),
+            // slider
+            min: z.number().optional().describe("(slider) mínimo"),
+            max: z.number().optional().describe("(slider) máximo"),
+            step: z.number().optional().describe("(slider) paso"),
+            initialNumber: z
+              .number()
+              .optional()
+              .describe("(slider) valor inicial"),
+            unit: z.string().optional().describe("(slider) unidad opcional"),
+            // button
+            targetVar: z
+              .string()
+              .optional()
+              .describe(
+                "(button) variable que se incrementa al pulsar — usable en reactionTemplate",
+              ),
+            delta: z
+              .number()
+              .optional()
+              .describe("(button) cuánto suma cada pulsada"),
+            // toggle
+            onLabel: z.string().optional().describe("(toggle) texto cuando ON"),
+            offLabel: z
+              .string()
+              .optional()
+              .describe("(toggle) texto cuando OFF"),
+            initialOn: z
+              .boolean()
+              .optional()
+              .describe("(toggle) inicia ON"),
+            // picker
+            options: z
+              .array(
+                z.object({
+                  label: z.string(),
+                  value: z.string(),
+                  emoji: z.string().optional(),
+                }),
+              )
+              .optional()
+              .describe("(picker) 2-6 opciones"),
+            initialValue: z
+              .string()
+              .optional()
+              .describe("(picker) value inicial"),
+          }),
+        )
+        .min(1)
+        .max(4)
+        .describe("1-4 controles. SIEMPRE define al menos uno."),
+      reactionTemplate: z
+        .string()
+        .describe(
+          "Texto reactivo. OBLIGATORIO: contiene al menos un placeholder {{idDelControl}} con el id EXACTO de un control. NUNCA escribas el número o valor literal — debe ser {{slug}} para que se actualice al mover el control. Ej OK: 'Con {{distancia}} unidades, la tierra siente el calor ☀️'. Ej MAL: 'Con 7 unidades...'",
+        ),
+      finishLabel: z
+        .string()
+        .optional()
+        .describe("Texto del botón de salida"),
+    }),
+    render: ({ args, status, respond }) => {
+      // Debug: log lo que el agente generó. Quita esto cuando esté estable.
+      if (typeof window !== "undefined") {
+        console.log("[presentMiniApp args]", args);
+      }
+      return (
+        <MiniAppActivity
+          args={args as Partial<MiniAppActivityArgs>}
+          status={status === "complete" ? "complete" : "executing"}
+          respond={(result) => {
+            try {
+              respond?.(JSON.parse(result));
+            } catch {
+              respond?.({ raw: result });
+            }
+          }}
+        />
+      );
+    },
   });
 
   return null;
