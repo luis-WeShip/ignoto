@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { CopilotKit } from "@copilotkit/react-core";
-import { CopilotSidebar } from "@copilotkit/react-ui";
+import { CopilotChat } from "@copilotkit/react-ui";
 import {
   useAgentContext,
   useFrontendTool,
@@ -10,7 +10,7 @@ import {
 } from "@copilotkit/react-core/v2";
 import { z } from "zod";
 
-import { ProfileCard } from "@/components/ProfileCard";
+import { KawaiiBlob } from "@/components/KawaiiBlob";
 import {
   CountingActivity,
   type CountingActivityArgs,
@@ -44,7 +44,6 @@ import {
 function App() {
   const [profile, setProfile] = useState<ChildProfile>(initialProfile);
 
-  // Sólo campos estables (los que cambian rara vez), para no churn-ear el contexto
   useAgentContext({
     description:
       "Perfil del niño con quien estás interactuando. Adapta dificultad y temas a sus gustos.",
@@ -65,7 +64,6 @@ function App() {
     }));
   }, []);
 
-  // ---------- profile ----------
   useFrontendTool({
     name: "updateChildProfile",
     description:
@@ -93,16 +91,13 @@ function App() {
           const set = new Set(removeLikes);
           next.likes = next.likes.filter((l) => !set.has(l));
         }
-        if (difficulty) {
-          next.difficulty = difficulty as Difficulty;
-        }
+        if (difficulty) next.difficulty = difficulty as Difficulty;
         return next;
       });
       return "ok";
     },
   });
 
-  // ---------- ACTIVITIES (HITL) ----------
   useHumanInTheLoop({
     name: "presentCounting",
     description:
@@ -137,12 +132,7 @@ function App() {
     parameters: z.object({
       question: z.string(),
       options: z
-        .array(
-          z.object({
-            label: z.string(),
-            emoji: z.string().optional(),
-          }),
-        )
+        .array(z.object({ label: z.string(), emoji: z.string().optional() }))
         .min(2)
         .max(4),
       correctIndex: z.number(),
@@ -166,7 +156,8 @@ function App() {
 
   useHumanInTheLoop({
     name: "presentSumBlocks",
-    description: "Suma visual: dos grupos de bloques, el niño escribe el total.",
+    description:
+      "Suma visual: dos grupos de bloques, el niño escribe el total.",
     parameters: z.object({
       leftCount: z.number(),
       rightCount: z.number(),
@@ -224,12 +215,7 @@ function App() {
     parameters: z.object({
       prompt: z.string(),
       pairs: z
-        .array(
-          z.object({
-            left: z.string(),
-            right: z.string(),
-          }),
-        )
+        .array(z.object({ left: z.string(), right: z.string() }))
         .min(2)
         .max(4),
     }),
@@ -284,38 +270,90 @@ function App() {
     ),
   });
 
+  return null;
+}
+
+function DecorativeBlobs() {
+  // Decoración de fondo: blobs flotando con animación. Pointer-events-none.
   return (
-    <main className="min-h-screen p-4 sm:p-6 max-w-3xl mx-auto">
-      <header className="mb-6 text-center">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-800">
-          🎈 Ignoto
-        </h1>
-        <p className="text-slate-600">Aprende jugando con tu tutor IA</p>
-      </header>
-
-      <ProfileCard profile={profile} onChange={setProfile} />
-
-      <div className="mt-6 rounded-3xl border-4 border-dashed border-sky-300 bg-white/70 p-6 text-center text-slate-600">
-        💬 Habla con tu tutor en la barra lateral. Las actividades aparecen
-        dentro del chat.
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+    >
+      <div className="absolute top-8 left-6 animate-float opacity-70">
+        <KawaiiBlob shape="pentagon" color="var(--sky)" size={88} mood="happy" />
       </div>
-    </main>
+      <div
+        className="absolute top-16 right-10 animate-float opacity-70"
+        style={{ animationDelay: "0.4s" }}
+      >
+        <KawaiiBlob shape="circle" color="var(--coral)" size={72} mood="wink" />
+      </div>
+      <div
+        className="absolute bottom-24 left-12 animate-float opacity-70"
+        style={{ animationDelay: "0.8s" }}
+      >
+        <KawaiiBlob
+          shape="triangle"
+          color="var(--mint)"
+          size={68}
+          mood="sleepy"
+        />
+      </div>
+      <div
+        className="absolute bottom-10 right-12 animate-float opacity-70"
+        style={{ animationDelay: "1.2s" }}
+      >
+        <KawaiiBlob
+          shape="drop"
+          color="var(--accent)"
+          size={80}
+          mood="smile"
+        />
+      </div>
+    </div>
+  );
+}
+
+function ChatHeader() {
+  return (
+    <header className="flex items-center gap-3 px-5 py-4 border-b-2 border-border bg-card">
+      <div className="animate-bounce-slow">
+        <KawaiiBlob shape="blob" color="var(--primary)" size={56} mood="star" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h1 className="font-display text-2xl font-bold leading-none">
+          IGNO
+        </h1>
+        <p className="text-xs text-muted-foreground">
+          Tu tutor con superpoderes ✨
+        </p>
+      </div>
+    </header>
   );
 }
 
 export default function Page() {
   return (
     <CopilotKit runtimeUrl="/api/copilotkit" useSingleEndpoint={false}>
-      <App />
-      <CopilotSidebar
-        defaultOpen
-        clickOutsideToClose={false}
-        labels={{
-          title: "Tu tutor 🐣",
-          initial:
-            "¡Hola! 👋 Soy Ignoto. ¿Cómo te llamas y qué te gusta?",
-        }}
-      />
+      <main className="relative min-h-screen flex items-center justify-center p-3 sm:p-6 bg-background">
+        <DecorativeBlobs />
+
+        <div className="relative z-10 w-full max-w-2xl h-[min(900px,calc(100vh-1.5rem))] flex flex-col rounded-3xl border-2 border-border bg-card shadow-soft overflow-hidden animate-pop-in">
+          <ChatHeader />
+          <div className="flex-1 min-h-0 flex flex-col">
+            <App />
+            <CopilotChat
+              className="flex-1 min-h-0"
+              labels={{
+                title: "IGNO",
+                initial:
+                  "¡Hola! 👋 Soy IGNO. ¿Cómo te llamas y qué te gusta?",
+              }}
+            />
+          </div>
+        </div>
+      </main>
     </CopilotKit>
   );
 }
