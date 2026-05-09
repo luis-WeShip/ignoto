@@ -58,30 +58,28 @@ export function QuizActivity({ args, status, respond }: Props) {
               disabled={submitted}
               onClick={() => submit(i)}
               className={cn(
-                "flex items-center gap-3 rounded-2xl border-4 p-4 text-left shadow",
-                "transition-transform hover:scale-[1.02] active:scale-95",
-                "border-purple-300 bg-purple-50",
-                isCorrect && "border-green-400 bg-green-100",
-                isWrong && "border-red-400 bg-red-100",
-                submitted && !isSelected && !isCorrect && "opacity-60",
+                "flex items-center gap-3 rounded-2xl border-2 border-border p-4 text-left bg-card",
+                "shadow-pop transition-transform hover:translate-y-0.5 hover:shadow-none active:scale-95",
+                isCorrect && "bg-mint border-mint/60 text-mint-foreground",
+                isWrong && "bg-coral border-coral/60 text-coral-foreground",
+                submitted && !isSelected && !isCorrect && "opacity-50",
+                submitted && "cursor-not-allowed",
               )}
             >
               {opt.emoji ? (
                 <span className="text-4xl">{opt.emoji}</span>
               ) : (
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-200 font-bold text-purple-900">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-display font-bold">
                   {String.fromCharCode(65 + i)}
                 </span>
               )}
-              <span className="text-lg font-semibold text-slate-800">
-                {opt.label}
-              </span>
+              <span className="font-display font-semibold">{opt.label}</span>
             </button>
           );
         })}
       </div>
       {submitted ? (
-        <p className="mt-4 text-center text-lg font-bold">
+        <p className="mt-4 text-center font-display text-lg font-bold animate-pop-in">
           {selected === correctIndex
             ? "🎉 ¡Correcto!"
             : "💡 Casi, sigue intentando"}

@@ -122,12 +122,12 @@ export function MatchPairsActivity({ args, status, respond }: Props) {
               disabled={done || isMatched}
               onClick={() => onPick(c)}
               className={cn(
-                "min-h-20 rounded-2xl border-4 p-3 text-base font-bold shadow",
-                "transition-transform hover:scale-[1.03] active:scale-95",
-                "border-indigo-300 bg-indigo-50",
-                isPicked && "border-indigo-500 ring-4 ring-indigo-300 bg-white",
-                isMatched && "border-green-400 bg-green-100 opacity-80",
-                isWrong && "border-red-400 bg-red-100 animate-pulse",
+                "min-h-20 rounded-2xl border-2 border-border bg-card p-3 font-display font-bold",
+                "shadow-pop transition-transform hover:translate-y-0.5 hover:shadow-none active:scale-95",
+                isPicked && "bg-primary text-primary-foreground border-primary/50 animate-wiggle",
+                isMatched && "bg-mint text-mint-foreground border-mint/50 opacity-90",
+                isWrong && "bg-coral text-coral-foreground border-coral/50 animate-pulse",
+                done && "cursor-not-allowed",
               )}
             >
               {c.text}
@@ -136,20 +136,20 @@ export function MatchPairsActivity({ args, status, respond }: Props) {
         })}
       </div>
 
-      <div className="mt-4 flex items-center justify-between">
-        <span className="text-sm text-slate-600">
+      <div className="mt-4 flex items-center justify-between text-sm">
+        <span className="text-muted-foreground font-display">
           {matched.size}/{totalPairs} parejas · {attempts} intentos
         </span>
         {!done ? (
           <button
             type="button"
             onClick={giveUp}
-            className="text-xs text-slate-500 underline"
+            className="text-xs text-muted-foreground underline hover:text-foreground"
           >
             Suficiente
           </button>
         ) : (
-          <span className="text-sm font-bold">
+          <span className="font-display font-bold animate-pop-in">
             {matched.size === totalPairs ? "🎉 ¡Todas!" : "💡 Sigamos otra"}
           </span>
         )}

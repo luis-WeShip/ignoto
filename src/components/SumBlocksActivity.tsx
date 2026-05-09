@@ -48,7 +48,7 @@ export function SumBlocksActivity({ args, status, respond }: Props) {
   const Group = ({ count, color }: { count: number; color: string }) => (
     <div
       className={cn(
-        "flex flex-wrap content-start justify-center gap-1 rounded-2xl border-4 p-3 min-h-24 min-w-24 flex-1",
+        "flex flex-wrap content-start justify-center gap-1 rounded-2xl border-2 p-3 min-h-24 flex-1",
         color,
       )}
     >
@@ -63,9 +63,11 @@ export function SumBlocksActivity({ args, status, respond }: Props) {
   return (
     <ActivityShell title={prompt} emoji="➕" status={status}>
       <div className="flex items-center gap-2 mb-4">
-        <Group count={left} color="border-sky-300 bg-sky-50" />
-        <span className="text-4xl font-extrabold text-slate-700">+</span>
-        <Group count={right} color="border-pink-300 bg-pink-50" />
+        <Group count={left} color="border-sky/40 bg-sky/15" />
+        <span className="font-display text-4xl font-extrabold text-primary">
+          +
+        </span>
+        <Group count={right} color="border-coral/40 bg-coral/15" />
       </div>
 
       <div className="flex flex-col items-center gap-3">
@@ -79,10 +81,14 @@ export function SumBlocksActivity({ args, status, respond }: Props) {
           onChange={(e) => setAnswer(e.target.value)}
           placeholder="?"
           className={cn(
-            "w-28 rounded-2xl border-4 border-amber-300 bg-white p-3 text-center text-3xl font-extrabold",
-            "focus:outline-none focus:border-amber-500",
-            submitted && numericAnswer === expected && "border-green-400 bg-green-50",
-            submitted && numericAnswer !== expected && "border-red-400 bg-red-50",
+            "w-28 rounded-2xl border-2 border-accent bg-card p-3 text-center font-display text-3xl font-extrabold",
+            "focus:outline-none focus:ring-4 focus:ring-accent/40",
+            submitted &&
+              numericAnswer === expected &&
+              "border-mint/60 bg-mint/15",
+            submitted &&
+              numericAnswer !== expected &&
+              "border-coral/60 bg-coral/15",
           )}
         />
         {!submitted ? (
@@ -91,15 +97,15 @@ export function SumBlocksActivity({ args, status, respond }: Props) {
             onClick={submit}
             disabled={!isValid}
             className={cn(
-              "rounded-2xl bg-amber-400 px-6 py-3 text-lg font-bold text-white shadow",
-              "transition-transform hover:scale-105 active:scale-95",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
+              "rounded-full bg-accent text-accent-foreground px-6 py-3 font-display text-lg font-bold",
+              "shadow-pop transition-transform hover:translate-y-0.5 hover:shadow-none active:scale-95",
+              "disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-pop",
             )}
           >
             Listo ✨
           </button>
         ) : (
-          <p className="text-center text-lg font-bold">
+          <p className="text-center font-display text-lg font-bold animate-pop-in">
             {numericAnswer === expected
               ? "🎉 ¡Perfecto!"
               : `💡 La respuesta era ${expected}`}

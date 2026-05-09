@@ -45,12 +45,14 @@ export function StoryPageActivity({ args, status, respond }: Props) {
 
   return (
     <ActivityShell title={scene} emoji="📖" status={status}>
-      <div className="rounded-2xl border-4 border-emerald-200 bg-emerald-50 p-4 mb-4 text-center">
+      <div className="rounded-2xl border-2 border-mint/40 bg-mint/15 p-4 mb-4 text-center">
         <p className="text-5xl mb-3 leading-none">{emojiArt}</p>
-        <p className="text-base text-slate-800 leading-relaxed">{text}</p>
+        <p className="font-display text-base text-foreground/90 leading-relaxed">
+          {text}
+        </p>
       </div>
 
-      <p className="text-center text-sm font-semibold text-slate-700 mb-3">
+      <p className="text-center font-display text-sm font-bold text-muted-foreground mb-3">
         ¿Qué hace ahora?
       </p>
       <div className="grid grid-cols-1 gap-2">
@@ -63,15 +65,16 @@ export function StoryPageActivity({ args, status, respond }: Props) {
               disabled={!!chosenId}
               onClick={() => submit(c.id, c.label)}
               className={cn(
-                "flex items-center gap-3 rounded-2xl border-4 p-3 text-left shadow",
-                "transition-transform hover:scale-[1.01] active:scale-95",
-                "border-emerald-300 bg-white",
-                isSelected && "border-emerald-500 bg-emerald-100 ring-4 ring-emerald-300",
+                "flex items-center gap-3 rounded-2xl border-2 border-border bg-card p-3 text-left",
+                "shadow-pop transition-transform hover:translate-y-0.5 hover:shadow-none active:scale-95",
+                isSelected &&
+                  "bg-primary text-primary-foreground border-primary/50",
                 chosenId && !isSelected && "opacity-50",
+                chosenId && "cursor-not-allowed",
               )}
             >
               {c.emoji ? <span className="text-3xl">{c.emoji}</span> : null}
-              <span className="font-semibold text-slate-800">{c.label}</span>
+              <span className="font-display font-semibold">{c.label}</span>
             </button>
           );
         })}

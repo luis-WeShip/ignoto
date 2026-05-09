@@ -30,13 +30,12 @@ export function CountingActivity({ args, status, respond }: Props) {
     if (submitted || !respond) return;
     setSelected(n);
     setSubmitted(true);
-    const correct = n === expected;
     respond(
       JSON.stringify({
         activity: "counting",
         chosen: n,
         expected,
-        correct,
+        correct: n === expected,
       }),
     );
   };
@@ -54,18 +53,18 @@ export function CountingActivity({ args, status, respond }: Props) {
 
   return (
     <ActivityShell title={prompt} emoji="🔢" status={status}>
-      <div className="flex flex-wrap justify-center gap-2 rounded-2xl bg-white/70 p-4 mb-4">
+      <div className="flex flex-wrap justify-center gap-2 rounded-2xl bg-sky/15 p-4 mb-4 border-2 border-sky/30">
         {Array.from({ length: count }).map((_, i) => (
           <span
             key={i}
-            className="text-4xl animate-[bounce_1.5s_ease-in-out_infinite]"
-            style={{ animationDelay: `${i * 0.05}s` }}
+            className="text-4xl animate-bounce-slow"
+            style={{ animationDelay: `${i * 0.06}s` }}
           >
             {emoji}
           </span>
         ))}
       </div>
-      <p className="text-center text-slate-700 mb-3 font-medium">
+      <p className="text-center font-display font-bold text-base mb-3">
         ¿Cuántos hay?
       </p>
       <div className="flex flex-wrap justify-center gap-3">
@@ -80,13 +79,12 @@ export function CountingActivity({ args, status, respond }: Props) {
               disabled={submitted}
               onClick={() => submit(n)}
               className={cn(
-                "h-16 w-16 rounded-2xl border-4 text-2xl font-extrabold shadow",
-                "transition-transform hover:scale-105 active:scale-95",
-                "border-sky-300 bg-sky-100 text-sky-900",
-                isSelected && "ring-4 ring-offset-2",
-                isCorrect && "border-green-400 bg-green-200 ring-green-400",
-                isWrong && "border-red-400 bg-red-200 ring-red-400",
-                submitted && !isSelected && "opacity-60",
+                "h-16 w-16 rounded-2xl bg-sky text-sky-foreground font-display font-extrabold text-2xl",
+                "shadow-pop transition-transform hover:translate-y-0.5 hover:shadow-none active:scale-95",
+                isCorrect && "bg-mint text-mint-foreground",
+                isWrong && "bg-coral text-coral-foreground",
+                submitted && !isSelected && "opacity-50",
+                submitted && "cursor-not-allowed",
               )}
             >
               {n}
@@ -95,8 +93,8 @@ export function CountingActivity({ args, status, respond }: Props) {
         })}
       </div>
       {submitted ? (
-        <p className="mt-4 text-center text-lg font-bold">
-          {selected === expected ? "🎉 ¡Muy bien!" : "💡 Intentamos otra"}
+        <p className="mt-4 text-center font-display text-lg font-bold animate-pop-in">
+          {selected === expected ? "🎉 ¡Muy bien!" : "💡 ¡Intentamos otra!"}
         </p>
       ) : null}
     </ActivityShell>
