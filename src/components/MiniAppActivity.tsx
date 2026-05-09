@@ -6,7 +6,6 @@ import { KawaiiBlob } from "./KawaiiBlob";
 
 type ControlValue = number | boolean | string;
 
-// Shape "raw" tal y como llega del agente — flat con campos opcionales.
 export interface RawControl {
   kind: "slider" | "button" | "toggle" | "picker";
   id: string;
@@ -30,12 +29,32 @@ export interface RawControl {
   initialValue?: string;
 }
 
+export interface BandCondition {
+  controlId: string;
+  min?: number;
+  max?: number;
+  /** Valor exacto como string. Para toggle usa "true"/"false"; para picker usa el value. */
+  equals?: string;
+}
+
+export type BandStatus = "great" | "good" | "warning" | "danger";
+
+export interface Band {
+  when: BandCondition[];
+  status?: BandStatus;
+  message: string;
+  emoji?: string;
+  healthPct?: number;
+  detail?: string;
+}
+
 export interface MiniAppActivityArgs {
   title: string;
   intro: string;
   scene?: string;
   controls: RawControl[];
-  reactionTemplate: string;
+  bands?: Band[];
+  reactionTemplate?: string;
   finishLabel?: string;
 }
 
@@ -45,11 +64,69 @@ interface Props {
   respond?: (result: string) => void;
 }
 
+const STATUS_STYLES: Record<
+  BandStatus,
+  { bar: string; border: string; bg: string; text: string }
+> = {
+  great: {
+    bar: "bg-mint",
+    border: "border-mint/50",
+    bg: "bg-mint/15",
+    text: "text-mint-foreground",
+  },
+  good: {
+    bar: "bg-primary",
+    border: "border-primary/40",
+    bg: "bg-primary/10",
+    text: "text-primary-foreground",
+  },
+  warning: {
+    bar: "bg-accent",
+    border: "border-accent/50",
+    bg: "bg-accent/15",
+    text: "text-accent-foreground",
+  },
+  danger: {
+    bar: "bg-coral",
+    border: "border-coral/50",
+    bg: "bg-coral/20",
+    text: "text-coral-foreground",
+  },
+};
+
+function matchBand(
+  state: Record<string, ControlValue>,
+  band: Band,
+): boolean {
+  for (const cond of band.when ?? []) {
+    const v = state[cond.controlId];
+    if (cond.equals !== undefined) {
+      if (String(v) !== cond.equals) return false;
+      continue;
+    }
+    if (typeof v !== "number") return false;
+    if (cond.min !== undefined && v < cond.min) return false;
+    if (cond.max !== undefined && v > cond.max) return false;
+  }
+  return true;
+}
+
+function findBand(
+  state: Record<string, ControlValue>,
+  bands: Band[],
+): Band | null {
+  for (const band of bands) {
+    if (matchBand(state, band)) return band;
+  }
+  return null;
+}
+
 export function MiniAppActivity({ args, status, respond }: Props) {
   const title = args.title ?? "Mini app";
   const intro = args.intro ?? "Vamos a explorar.";
   const scene = args.scene ?? "";
   const controls = args.controls ?? [];
+  const bands = args.bands ?? [];
   const reactionTemplate = args.reactionTemplate ?? "";
   const finishLabel = args.finishLabel ?? "Listo ✨";
 
@@ -70,18 +147,12 @@ export function MiniAppActivity({ args, status, respond }: Props) {
     return init;
   });
 
-  // Normaliza unicode (ej. ｛｛ fullwidth → {{) y luego reemplaza placeholders.
-  // Acepta {{var}}, {{ var }}, y como fallback {var}.
   const evalTemplate = (t: string) => {
-    const norm = t
-      .replace(/[｛❴]/g, "{") // ｛ fullwidth y ❴ medium left curly
-      .replace(/[｝❵]/g, "}");
-
+    const norm = t.replace(/[｛❴]/g, "{").replace(/[｝❵]/g, "}");
     const replaceVar = (id: string) => {
       const cleanId = id.trim();
       const v =
         state[cleanId] ??
-        // case-insensitive por si el agente cambió mayúsculas
         state[
           Object.keys(state).find(
             (k) => k.toLowerCase() === cleanId.toLowerCase(),
@@ -91,18 +162,11 @@ export function MiniAppActivity({ args, status, respond }: Props) {
       if (v == null || v === "") return `[${cleanId}=?]`;
       return String(v);
     };
-
     return norm
       .replace(/\{\{\s*([\w-]+)\s*\}\}/g, (_, id) => replaceVar(id))
       .replace(/\{\s*([\w-]+)\s*\}/g, (_, id) => replaceVar(id));
   };
 
-  if (typeof window !== "undefined") {
-    console.log("[MiniApp eval]", { reactionTemplate, state, controls });
-  }
-
-  // Línea de valores en vivo: SIEMPRE visible (debajo del template). Garantiza
-  // que el niño vea cambios aunque el modelo haya mal-formado el template.
   const liveValues = controls
     .map((c) => {
       const target = c.kind === "button" ? c.targetVar ?? c.id : c.id;
@@ -113,7 +177,7 @@ export function MiniAppActivity({ args, status, respond }: Props) {
           ? v
             ? c.onLabel ?? "✓"
             : c.offLabel ?? "✗"
-          : String(v);
+          : `${v}${c.kind === "slider" && c.unit ? ` ${c.unit}` : ""}`;
       const labelEmoji = c.emoji ? `${c.emoji} ` : "";
       return `${labelEmoji}${c.label}: ${display}`;
     })
@@ -135,7 +199,17 @@ export function MiniAppActivity({ args, status, respond }: Props) {
     respond(JSON.stringify({ activity: "miniapp", finalState: state, title }));
   };
 
-  // Si ya respondió, mostrar pill compacto en el chat
+  const activeBand = bands.length > 0 ? findBand(state, bands) : null;
+  const styles = STATUS_STYLES[activeBand?.status ?? "good"];
+
+  if (typeof window !== "undefined") {
+    console.log("[MiniApp]", {
+      state,
+      activeBand,
+      reactionTemplate,
+    });
+  }
+
   if (status === "complete") {
     return (
       <div className="my-2 inline-flex items-center gap-2 rounded-2xl border-2 border-mint/40 bg-mint/15 p-3 font-display text-sm">
@@ -166,12 +240,7 @@ export function MiniAppActivity({ args, status, respond }: Props) {
           className="absolute bottom-12 right-12 animate-float opacity-50"
           style={{ animationDelay: "0.8s" }}
         >
-          <KawaiiBlob
-            shape="drop"
-            color="var(--accent)"
-            size={80}
-            mood="smile"
-          />
+          <KawaiiBlob shape="drop" color="var(--accent)" size={80} mood="smile" />
         </div>
         <div
           className="absolute bottom-16 left-12 animate-float opacity-50"
@@ -232,15 +301,69 @@ export function MiniAppActivity({ args, status, respond }: Props) {
           ))}
         </div>
 
-        {(reactionTemplate || liveValues) ? (
-          <div className="rounded-2xl border-2 border-accent/40 bg-accent/15 p-4 mb-4 text-center min-h-16 flex flex-col items-center justify-center gap-1">
+        {/* Banda activa = simulación con consecuencias reales */}
+        {activeBand ? (
+          <div
+            className={cn(
+              "rounded-2xl border-2 p-4 mb-3 transition-colors",
+              styles.border,
+              styles.bg,
+            )}
+          >
+            <div className="flex items-start gap-3">
+              {activeBand.emoji ? (
+                <span className="text-5xl leading-none shrink-0 animate-pop-in">
+                  {activeBand.emoji}
+                </span>
+              ) : null}
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-lg font-bold text-foreground">
+                  {activeBand.message}
+                </p>
+                {activeBand.detail ? (
+                  <p className="text-sm text-foreground/70 mt-1 leading-relaxed">
+                    {activeBand.detail}
+                  </p>
+                ) : null}
+                {typeof activeBand.healthPct === "number" ? (
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between mb-1 text-xs font-display font-semibold text-muted-foreground">
+                      <span>Salud</span>
+                      <span>{Math.round(activeBand.healthPct)}%</span>
+                    </div>
+                    <div className="h-3 w-full rounded-full bg-muted overflow-hidden border border-border/50">
+                      <div
+                        className={cn(
+                          "h-full transition-all duration-500 ease-out",
+                          styles.bar,
+                        )}
+                        style={{
+                          width: `${Math.max(0, Math.min(100, activeBand.healthPct))}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Live values: fallback siempre visible */}
+        {liveValues || reactionTemplate ? (
+          <div className="rounded-2xl border-2 border-border bg-card p-3 mb-4 text-center">
             {reactionTemplate ? (
-              <p className="font-display text-xl font-bold text-accent-foreground">
+              <p className="font-display text-base">
                 {evalTemplate(reactionTemplate)}
               </p>
             ) : null}
             {liveValues ? (
-              <p className="font-display text-sm text-accent-foreground/70">
+              <p
+                className={cn(
+                  "font-display text-xs text-muted-foreground",
+                  reactionTemplate ? "mt-1" : "",
+                )}
+              >
                 {liveValues}
               </p>
             ) : null}

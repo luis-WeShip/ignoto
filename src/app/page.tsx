@@ -40,6 +40,18 @@ import {
   type MiniAppActivityArgs,
 } from "@/components/MiniAppActivity";
 import {
+  FractionPieActivity,
+  type FractionPieActivityArgs,
+} from "@/components/FractionPieActivity";
+import {
+  CompareScaleActivity,
+  type CompareScaleActivityArgs,
+} from "@/components/CompareScaleActivity";
+import {
+  ColorMixerActivity,
+  type ColorMixerActivityArgs,
+} from "@/components/ColorMixerActivity";
+import {
   initialProfile,
   type ChildProfile,
   type Difficulty,
@@ -275,6 +287,104 @@ function App() {
   });
 
   useHumanInTheLoop({
+    name: "presentFractionPie",
+    description:
+      "Pizza/pie fraccionable. El niño hace clic en porciones para llenar hasta llegar a la fracción objetivo. Úsala para enseñar fracciones simples (1/2, 3/4, 2/3, etc).",
+    parameters: z.object({
+      prompt: z
+        .string()
+        .describe("Frase corta. Ej: 'Haz la fracción 3 de 4 🍕'"),
+      denominator: z
+        .number()
+        .min(2)
+        .max(12)
+        .describe("Total de porciones (2-12)"),
+      expectedNumerator: z
+        .number()
+        .describe("Cuántas porciones debe llenar (0..denominator)"),
+      emoji: z
+        .string()
+        .optional()
+        .describe("Emoji del título. Default 🍕"),
+    }),
+    render: ({ args, status, respond }) => (
+      <FractionPieActivity
+        args={args as Partial<FractionPieActivityArgs>}
+        status={status === "complete" ? "complete" : "executing"}
+        respond={(result) => {
+          try {
+            respond?.(JSON.parse(result));
+          } catch {
+            respond?.({ raw: result });
+          }
+        }}
+      />
+    ),
+  });
+
+  useHumanInTheLoop({
+    name: "presentCompareScale",
+    description:
+      "Balanza visual con dos grupos de objetos. El niño elige <, =, > según cuál pesa más. Úsala para enseñar comparación de cantidades, mayor/menor, igualdad.",
+    parameters: z.object({
+      prompt: z
+        .string()
+        .describe("Frase corta. Ej: '¿Cuál grupo tiene más?'"),
+      leftCount: z.number().min(0).max(15),
+      leftEmoji: z
+        .string()
+        .describe("Un solo emoji para el grupo izquierdo. Ej '🍎'"),
+      rightCount: z.number().min(0).max(15),
+      rightEmoji: z
+        .string()
+        .describe("Un solo emoji para el grupo derecho. Ej '🍌'"),
+    }),
+    render: ({ args, status, respond }) => (
+      <CompareScaleActivity
+        args={args as Partial<CompareScaleActivityArgs>}
+        status={status === "complete" ? "complete" : "executing"}
+        respond={(result) => {
+          try {
+            respond?.(JSON.parse(result));
+          } catch {
+            respond?.({ raw: result });
+          }
+        }}
+      />
+    ),
+  });
+
+  useHumanInTheLoop({
+    name: "presentColorMixer",
+    description:
+      "Mezclador de colores primarios (rojo, azul, amarillo). El niño activa primarios y descubre el secundario. Si pasas expectedColor, es un quiz. Sin él, es exploración libre.",
+    parameters: z.object({
+      prompt: z
+        .string()
+        .describe("Frase corta. Ej: '¿Qué sale al mezclar rojo y amarillo?'"),
+      expectedColor: z
+        .string()
+        .optional()
+        .describe(
+          "Color esperado (quiz). Valores válidos: rojo, azul, amarillo, naranja, verde, morado, marrón, blanco. Omitir para modo exploración.",
+        ),
+    }),
+    render: ({ args, status, respond }) => (
+      <ColorMixerActivity
+        args={args as Partial<ColorMixerActivityArgs>}
+        status={status === "complete" ? "complete" : "executing"}
+        respond={(result) => {
+          try {
+            respond?.(JSON.parse(result));
+          } catch {
+            respond?.({ raw: result });
+          }
+        }}
+      />
+    ),
+  });
+
+  useHumanInTheLoop({
     name: "presentMiniApp",
     description:
       "Crea una mini-app interactiva en MODO APP (pantalla completa) para explicar un tema cuando ninguna otra herramienta encaja. ANTES de llamarla pregunta 1-2 cosas cortas para definirla. Construye 1-3 controles muy simples (slider/button/toggle/picker) y un reactionTemplate con {{idDelControl}} que se actualiza en vivo.",
@@ -352,10 +462,49 @@ function App() {
         .min(1)
         .max(4)
         .describe("1-4 controles. SIEMPRE define al menos uno."),
+      bands: z
+        .array(
+          z.object({
+            when: z
+              .array(
+                z.object({
+                  controlId: z
+                    .string()
+                    .describe("id literal de un control existente"),
+                  min: z.number().optional().describe("≥ inclusive"),
+                  max: z.number().optional().describe("≤ inclusive"),
+                  equals: z
+                    .string()
+                    .optional()
+                    .describe(
+                      "valor exacto (picker: el value; toggle: 'true'|'false')",
+                    ),
+                }),
+              )
+              .min(1),
+            status: z.enum(["great", "good", "warning", "danger"]),
+            message: z.string().describe("Frase corta de qué pasa"),
+            emoji: z.string().describe("1-2 emojis grandes"),
+            healthPct: z
+              .number()
+              .min(0)
+              .max(100)
+              .describe("Salud 0-100 para la barra"),
+            detail: z
+              .string()
+              .describe("Dato real/explicación factual breve"),
+          }),
+        )
+        .min(3)
+        .max(8)
+        .describe(
+          "🚨 OBLIGATORIO: 3-8 zonas de simulación con datos REALES. SIN bands la app no enseña nada y es inútil. Ordena de más restrictiva (lethal/danger primero) a más amplia. La PRIMERA banda cuyas condiciones matchean gana.",
+        ),
       reactionTemplate: z
         .string()
+        .optional()
         .describe(
-          "Texto reactivo. OBLIGATORIO: contiene al menos un placeholder {{idDelControl}} con el id EXACTO de un control. NUNCA escribas el número o valor literal — debe ser {{slug}} para que se actualice al mover el control. Ej OK: 'Con {{distancia}} unidades, la tierra siente el calor ☀️'. Ej MAL: 'Con 7 unidades...'",
+          "Texto reactivo opcional. Si lo usas DEBE contener {{idDelControl}} con un id EXACTO de un control. Es secundario a bands; usa bands para consecuencias reales y reactionTemplate solo para narración ligera.",
         ),
       finishLabel: z
         .string()
